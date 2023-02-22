@@ -1,3 +1,5 @@
+const { network } = require("hardhat")
+
 module.exports = async ({ getNamedAccounts, deployments }) => {
     const { deploy } = deployments
     const { deployer } = await getNamedAccounts()
@@ -6,6 +8,6 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         from: deployer,
         args: [],
         log: true,
-        waitConfirmation: 6,
+        waitConfirmation: network.config.blockConfirmations || 1,
     })
 }
