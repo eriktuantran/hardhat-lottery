@@ -6,9 +6,9 @@ pragma solidity ^0.8.17;
 2. Pick a random winner by VRF
 3. Winner to be selected every X minutes
 */
-import "../node_modules/@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
-import "../node_modules/@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
-import "../node_modules/@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 
 error Raffle__NotEnoughEthEnter();
 error Raffle__TransferFailed();
