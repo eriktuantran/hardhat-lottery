@@ -22,11 +22,22 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         await vrfCoordinatorV2Mock.fundSubscription(subscriptionId, VRF_SUBSCRIPTION_FUND_AMOUNT)
     } else {
         vrfCoordinatorV2Address = networkConfig[chainId]["vrfCoordinatorV2"]
+        subscriptionId = networkConfig[chainId]["subscriptionId"]
     }
 
     const entranceFee = networkConfig[chainId]["entranceFee"]
     const gasLane = networkConfig[chainId]["gasLane"]
-    const args = [vrfCoordinatorV2Address, entranceFee, gasLane]
+    const callbackGasLimit = networkConfig[chainId]["callbackGasLimit"]
+    const interval = networkConfig[chainId]["interval"]
+
+    const args = [
+        vrfCoordinatorV2Address,
+        entranceFee,
+        gasLane,
+        subscriptionId,
+        callbackGasLimit,
+        interval,
+    ]
     const raffle = await deploy("Raffle", {
         from: deployer,
         args: args,
