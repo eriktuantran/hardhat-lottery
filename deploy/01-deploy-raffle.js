@@ -1,16 +1,17 @@
-const { network } = require("hardhat")
+const { network, ethers } = require("hardhat")
 const { developmentChains, networkConfig } = require("../helper-hardhat-config")
+const { verify } = require("../utils/verify.js")
 
 const VRF_SUBSCRIPTION_FUND_AMOUNT = ethers.utils.parseEther("10")
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
-    const { deploy } = deployments
+    const { deploy, log } = deployments
     const { deployer } = await getNamedAccounts()
     const chainId = network.config.chainId
     let vrfCoordinatorV2Address, subscriptionId
 
     if (developmentChains.includes(network.name)) {
-        const vrfCoordinatorV2Mock = await ethers.getContracts("VRFCoordinatorV2Mock")
+        const vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
         vrfCoordinatorV2Address = vrfCoordinatorV2Mock.address
 
         // Create subscription which is by website in the testnet
@@ -44,4 +45,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         log: true,
         waitConfirmation: network.config.blockConfirmations || 1,
     })
+    if (!developmentChains.includes(network.name) && process.env.ETHERSCAN_API_KEY) {
+        log("Verifying contract...")
+        await verify(raffle.address, args)
+    }
+    log("----------------------------")
 }
+module.exports.tags = ["all", "raffle"]
