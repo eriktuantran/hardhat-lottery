@@ -7,6 +7,7 @@ const VRF_SUBSCRIPTION_FUND_AMOUNT = ethers.utils.parseEther("10")
 module.exports = async ({ getNamedAccounts, deployments }) => {
     const { deploy, log } = deployments
     const { deployer } = await getNamedAccounts()
+    console.log("deployer----------", deployer)
     const chainId = network.config.chainId
     let vrfCoordinatorV2Address, subscriptionId
 
