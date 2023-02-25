@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.7;
 
 /* Scenario
 1. Players can enter the raffle by sending ETH to the contract
@@ -9,6 +9,7 @@ pragma solidity ^0.8.17;
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
+import "hardhat/console.sol";
 
 error Raffle__NotEnoughEthEnter();
 error Raffle__TransferFailed();
@@ -63,9 +64,11 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
 
     function enterRaffle() public payable {
         if (msg.value < i_entraceFee) {
+            console.log("Not enough ETH");
             revert Raffle__NotEnoughEthEnter();
         }
         if (s_raffleState != RaffleState.OPEN) {
+            console.log("Not OPEN");
             revert Raffle__NotOpen();
         }
         s_players.push(payable(msg.sender));
@@ -135,7 +138,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         return i_entraceFee;
     }
 
-    function getPlayers(uint256 index) public view returns (address) {
+    function getPlayer(uint256 index) public view returns (address) {
         return s_players[index];
     }
 
@@ -165,5 +168,9 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
 
     function getInterval() public view returns (uint256) {
         return i_interval;
+    }
+
+    function getSubscriptionId() public view returns (uint64) {
+        return i_subscriptionId;
     }
 }
