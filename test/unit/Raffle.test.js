@@ -93,4 +93,42 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   assert(upkeepNeeded)
               })
           })
+          describe("performUpkeep", function () {
+              it("it can only run if checkupkeep returns true", async () => {
+                  await raffle.enterRaffle({ value: raffleEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval.toNumber() + 1])
+                  await network.provider.request({ method: "evm_mine", params: [] })
+                  await vrfCoordinatorV2Mock.addConsumer(subscriptionId.toNumber(), raffle.address)
+                  const tx = await raffle.performUpkeep("0x")
+                  assert(tx)
+              })
+              it("will revert if checkupkeep returns false", async () => {
+                  await expect(raffle.performUpkeep("0x")).to.be.revertedWith(
+                      "Raffle__UpkeepNotNeeded"
+                  )
+              })
+              it("update the raffle state, emit event and call the vrf coordinator", async () => {
+                  await raffle.enterRaffle({ value: raffleEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval.toNumber() + 1])
+                  await network.provider.request({ method: "evm_mine", params: [] })
+                  await vrfCoordinatorV2Mock.addConsumer(subscriptionId.toNumber(), raffle.address)
+                  const txResponse = await raffle.performUpkeep("0x")
+                  const txReceipt = await txResponse.wait(1)
+                  const requestId = txReceipt.events[1].args.requestId
+                  assert(requestId.toNumber() > 0)
+                  assert.equal((await raffle.getRaffleState()).toString(), "1")
+              })
+          })
+          describe("fulfillRandomWords", function () {
+              beforeEach(async () => {
+                  await raffle.enterRaffle({ value: raffleEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval.toNumber() + 1])
+                  await network.provider.request({ method: "evm_mine", params: [] })
+              })
+              it("can only be called after performupkeep", async () => {
+                  await expect(
+                      vrfCoordinatorV2Mock.fulfillRandomWords(0, raffle.address)
+                  ).to.be.revertedWith("nonexistent request") // error from VRFCoordinatorV2Mock.sol
+              })
+          })
       })
