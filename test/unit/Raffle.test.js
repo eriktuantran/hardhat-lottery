@@ -124,11 +124,69 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   await raffle.enterRaffle({ value: raffleEntranceFee })
                   await network.provider.send("evm_increaseTime", [interval.toNumber() + 1])
                   await network.provider.request({ method: "evm_mine", params: [] })
+                  await vrfCoordinatorV2Mock.addConsumer(subscriptionId.toNumber(), raffle.address)
               })
               it("can only be called after performupkeep", async () => {
                   await expect(
                       vrfCoordinatorV2Mock.fulfillRandomWords(0, raffle.address)
                   ).to.be.revertedWith("nonexistent request") // error from VRFCoordinatorV2Mock.sol
+                  await expect(
+                      vrfCoordinatorV2Mock.fulfillRandomWords(1, raffle.address)
+                  ).to.be.revertedWith("nonexistent request") // error from VRFCoordinatorV2Mock.sol
+              })
+              it("Pick the winner, reset the lottery and send money", async () => {
+                  const additionalEntrances = 3
+                  const startingsAccountIndex = 1 // 0 is deployer
+                  const accounts = await ethers.getSigners()
+                  for (
+                      let i = startingsAccountIndex;
+                      i < startingsAccountIndex + additionalEntrances;
+                      i++
+                  ) {
+                      const accountConnectedsRaffle = raffle.connect(accounts[i])
+                      await accountConnectedsRaffle.enterRaffle({ value: raffleEntranceFee })
+                  }
+                  const startingTimestamp = await raffle.getLatestTimeStamp()
+
+                  // Performupkeep - chainlink keeper
+                  // fullfillRandomWords - chainlink vrf
+                  // we will have to wait for the fullfillRandomWords to be called
+                  await new Promise(async (resolve, reject) => {
+                      raffle.once("WinnerPicked", async () => {
+                          console.log("WinnerPicked EVENT!!!")
+                          try {
+                              const recentWinner = await raffle.getRecentWinner()
+                              console.log(`recent winner ${recentWinner}`)
+                              console.log(accounts[0].address)
+                              console.log(accounts[1].address)
+                              console.log(accounts[2].address)
+                              console.log(accounts[3].address)
+                              const raffleState = await raffle.getRaffleState()
+                              const endingTimestamp = await raffle.getLatestTimeStamp()
+                              const numPlayers = await raffle.getNumberOfPlayers()
+                              const winnerEndingBalance = await accounts[1].getBalance()
+                              assert.equal(numPlayers.toString(), "0")
+                              assert.equal(raffleState.toString(), "0")
+                              assert(endingTimestamp > startingTimestamp)
+                              assert.equal(
+                                  winnerEndingBalance.toString(),
+                                  winnerStartingBalance
+                                      .add(raffleEntranceFee)
+                                      .add(raffleEntranceFee.mul(additionalEntrances))
+                                      .toString()
+                              )
+                          } catch (error) {
+                              reject(error)
+                          }
+                          resolve()
+                      })
+                      // This context will not be blocked by the above promise
+                      const txResponse = await raffle.performUpkeep("0x")
+                      const txReceipt = await txResponse.wait(1)
+                      const winnerStartingBalance = await accounts[1].getBalance()
+                      const requestId = txReceipt.events[1].args.requestId
+                      await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, raffle.address)
+                  })
               })
           })
       })
