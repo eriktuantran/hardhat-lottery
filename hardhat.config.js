@@ -19,7 +19,7 @@ module.exports = {
             url: GOERLI_RPC_URL,
             accounts: [PRIVATE_KEY],
             chainId: 5,
-            blockConfirmations: 6,
+            blockConfirmations: 1,
         },
         localhost: {
             url: "http://127.0.0.1:8545/",
@@ -44,12 +44,13 @@ module.exports = {
     namedAccounts: {
         deployer: {
             default: 0,
+            1: 0,
         },
         player: {
             default: 1,
         },
     },
     mocha: {
-        timeout: 200000, //ms
+        timeout: 60000, //ms
     },
 }
