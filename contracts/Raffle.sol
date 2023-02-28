@@ -23,6 +23,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         CALCULATING
     }
     // State variables
+    address payable private immutable i_owner;
     uint256 private immutable i_entraceFee;
     address payable[] private s_players;
     // VRF related variables
@@ -40,9 +41,17 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     uint256 private immutable i_interval;
 
     // ERaffle__NotEnoughEthEnter
+    error FundMe__NotOwner();
     event RaffleEnter(address indexed player);
     event RequestedRaffleWinner(uint256 indexed requestId);
     event WinnerPicked(address indexed winner);
+    event Withdraw(address indexed owner);
+
+    // Modifiers
+    modifier onlyOwner() {
+        if (msg.sender != i_owner) revert FundMe__NotOwner();
+        _;
+    }
 
     constructor(
         address vrfCoordinatorV2, // Contract address
@@ -52,6 +61,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         uint32 callbackGasLimit,
         uint256 interval
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
+        i_owner = payable(msg.sender);
         i_entraceFee = _entranceFee;
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_gasLane = gasLane;
@@ -134,6 +144,19 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         emit WinnerPicked(recentWinner);
     }
 
+    function withdraw() public onlyOwner {
+        address payable recentWinner = i_owner;
+        s_recentWinner = recentWinner;
+        s_raffleState = RaffleState.OPEN;
+        s_players = new address payable[](0);
+        s_lastTimeStamp = block.timestamp;
+        (bool success, ) = recentWinner.call{value: address(this).balance}("");
+        if (!success) {
+            revert Raffle__TransferFailed();
+        }
+        emit WinnerPicked(recentWinner);
+    }
+
     function getEntranceFee() public view returns (uint256) {
         return i_entraceFee;
     }
@@ -172,5 +195,15 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
 
     function getSubscriptionId() public view returns (uint64) {
         return i_subscriptionId;
+    }
+
+    fallback() external payable {
+        // handle fallback logic here
+        enterRaffle();
+    }
+
+    receive() external payable {
+        // handle receive logic here
+        enterRaffle();
     }
 }
